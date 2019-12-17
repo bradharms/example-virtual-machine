@@ -1,0 +1,38 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:recommended"
+    ],
+    "jsRules": {
+        "quotemark": {
+            "options": "single"
+        },
+        "interface-name": {
+            "options": "never-prefix"
+        },
+        "variable-name": {
+            "options": [
+                "allow-leading-underscore",
+                "require-const-for-all-caps",
+                "check-format"
+            ]
+        },
+        "no-bitwise": false
+    },
+    "rules": {
+        "quotemark": {
+            "options": "single"
+        },
+        "interface-name": {
+            "options": "never-prefix"
+        },
+        "variable-name": {
+            "options": [
+                "allow-leading-underscore",
+                "require-const-for-all-caps"
+            ]
+        },
+        "no-bitwise": false
+    },
+    "rulesDirectory": []
+}
