@@ -6,40 +6,44 @@ Tendril is a virtual machine that executes instructions encoded as binary data a
 
 Tendril recognizes a fixed set of instructions. Instructions are 64 bits in length. The first 8 bits are used to indicate an op code, and remaining bits are used to accept one or more fields, referred to as "bit fields".
 
-| Hex  | Asm   | Description           | Bit assignments                                                                   |
-| ---- | ----- | --------------------- | --------------------------------------------------------------------------------- |
-| `00` | `NOP` | No-op                 | `---0:0000 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `01` | `SET` | Store a value         | `---0:0001 ----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
-| `03` | `MOV` | Copy a range of bytes | `---0:0010 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `03` | `PCL` | Procedure call        | `---0:0011 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `04` | `RET` | Return from procedure | `---0:0100 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `05` | `CJP` | Conditional jump      | `---0:0101 x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `06` | `UJP` | Unconditional jump    | `---0:0110 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `07` | `???` | No-op                 | `---0:0111 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `08` | `ADD` | `+`                   | `---0:1000 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `09` | `SUB` | `-`                   | `---0:1001 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0A` | `MUL` | `*`                   | `---0:1010 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0B` | `DIV` | `/`                   | `---0:1011 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0C` | `MOD` | `%`                   | `---0:1100 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0D` | `BAN` | `&`                   | `---0:1101 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0E` | `BOR` | `|`                   | `---0:1110 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `0F` | `BXO` | `^`                   | `---0:1111 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `10` | `BNT` | `~`                   | `---1:0000 xaaa:ybbb AAAA:AAAA AAAA:AAAA ----:---- ----:---- CCCC:CCCC CCCC:CCCC` |
-| `11` | `BSL` | `<<`                  | `---1:0001 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `12` | `BSR` | `>>`                  | `---1:0010 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `13` | `AND` | `&&`                  | `---1:0011 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `14` | `ORR` | `||`                  | `---1:0100 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `15` | `NOT` | `!`                   | `---1:0101 xaaa:ybbb AAAA:AAAA AAAA:AAAA ----:---- ----:---- CCCC:CCCC CCCC:CCCC` |
-| `16` | `EQL` | `==`                  | `---1:0110 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `17` | `NEQ` | `!=`                  | `---1:0111 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `18` | `GTR` | `>`                   | `---1:1000 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `19` | `LSR` | `<`                   | `---1:1001 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1A` | `GTE` | `>=`                  | `---1:1010 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1B` | `LTE` | `<=`                  | `---1:1011 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1C` | `SPN` | Spawn a new thread    | `---1:1100 x---:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `1D` | `EXT` | Exit current thread   | `---1:1101 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `1E` | `SCL` | System call           | `---1:1110 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1F` | `???` | No-op                 | `---1:1111 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+Currently instructions end at hex code `1E` (`SCL`).
+
+| Hex  | Asm   | Description           | Bit assignments (8-63)                                                  |
+| ---- | ----- | --------------------- | ----------------------------------------------------------------------- |
+| `00` | `NOP` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `01` | `SET` | Store a value         | `----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
+| `03` | `MOV` | Copy a range of bytes | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `03` | `PCL` | Procedure call        | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `04` | `RET` | Return from procedure | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `05` | `CJP` | Conditional jump      | `x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `06` | `UJP` | Unconditional jump    | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `07` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `08` | `ADD` | `+`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `09` | `SUB` | `-`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0A` | `MUL` | `*`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0B` | `DIV` | `/`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0C` | `MOD` | `%`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0D` | `BAN` | `&`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0E` | `BOR` | `|`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `0F` | `BXO` | `^`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `10` | `BNT` | `~`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA ----:---- ----:---- CCCC:CCCC CCCC:CCCC` |
+| `11` | `BSL` | `<<`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `12` | `BSR` | `>>`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `13` | `AND` | `&&`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `14` | `ORR` | `||`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `15` | `NOT` | `!`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA ----:---- ----:---- CCCC:CCCC CCCC:CCCC` |
+| `16` | `EQL` | `==`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `17` | `NEQ` | `!=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `18` | `GTR` | `>`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `19` | `LSR` | `<`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `1A` | `GTE` | `>=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `1B` | `LTE` | `<=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `1C` | `SPN` | Spawn a new thread    | `x---:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `1D` | `EXT` | Exit current thread   | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `1E` | `SCL` | System call           | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `1F` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `20` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| ...  | ...   | ...                   | ...                                                                     |
 
 ### Instruction Set: Bit Fields
 
