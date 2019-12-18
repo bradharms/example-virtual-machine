@@ -1,6 +1,6 @@
 # Tendril Specification
 
-Tendril is a virtual machine that executes instructions encoded as binary data and which operate on a fixed memory range. It does not use registers, and all instructions are capable of storing to and/or retrieving from any point in addressable memory.
+Tendril is a virtual machine that executes instructions encoded as binary data and which operate on a fixed memory range. It does not use registers, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
 
 ## Instruction Set
 
@@ -10,12 +10,12 @@ Tendril recognizes a fixed set of instructions. Instructions are 64 bits in leng
 | ---- | ----- | --------------------- | --------------------------------------------------------------------------------- |
 | `00` | `NOP` | No-op                 | `---0:0000 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `01` | `SET` | Store a value         | `---0:0001 ----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
-| `03` | `???` | Copy a range of bytes | `---0:0010 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `03` | `RET` | Procedure call        | `---0:0011 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `04` | `CJP` | Return from procedure | `---0:0100 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `05` | `UJP` | Conditional jump      | `---0:0101 x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `06` | `SET` | Unconditional jump    | `---0:0110 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `07` | `MOV` |                       | `---0:0111 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `03` | `MOV` | Copy a range of bytes | `---0:0010 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `03` | `PCL` | Procedure call        | `---0:0011 ----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `04` | `RET` | Return from procedure | `---0:0100 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `05` | `CJP` | Conditional jump      | `---0:0101 x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `06` | `UJP` | Unconditional jump    | `---0:0110 xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `07` | `???` | No-op                 | `---0:0111 ----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `08` | `ADD` | `+`                   | `---0:1000 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `09` | `SUB` | `-`                   | `---0:1001 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `0A` | `MUL` | `*`                   | `---0:1010 xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
