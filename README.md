@@ -71,7 +71,7 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 | `110`     | Signed 32-bit integer   |
 | `111`     | Signed 32-bit float     |
 
-#### SET - Store a Value
+#### Instruction Set: SET - Store a Value
 
 `SET` is used to store a literal value at a location in memory. The value is contained within the instruction.
 
