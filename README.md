@@ -9,7 +9,7 @@ Tendril recognizes a fixed set of instructions. Instructions are 64 bits in leng
 Currently instructions end at hex code `1E` (`SCL`).
 
 | Hex  | Asm   | Description           | Bit assignments (8-63)                                                  |
-| ---- | ----- | --------------------- | ----------------------------------------------------------------------- |
+|------|-------|-----------------------|-------------------------------------------------------------------------|
 | `00` | `NOP` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `01` | `SET` | Store a value         | `----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
 | `02` | `MOV` | Copy a range of bytes | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
@@ -17,7 +17,7 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `04` | `RET` | Return from procedure | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
 | `05` | `CJP` | Conditional jump      | `x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `06` | `UJP` | Unconditional jump    | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `07` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `07` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `08` | `ADD` | `+`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `09` | `SUB` | `-`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `0A` | `MUL` | `*`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
@@ -40,32 +40,41 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `1B` | `LTE` | `<=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `1C` | `SPN` | Spawn a new thread    | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB ----:---- ----:----` |
 | `1D` | `KIL` | Kill a thread         | `xaaa:y--- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
-| `1E` | `SCL` | System call           | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1F` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `20` | `???` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `1E` | `SCL` | System call           | `efgh:---- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
+| `1F` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `20` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | ...  | ...   | ...                   | ...                                                                     |
 
 ### Bit Fields
 
 Fields are assigned to fixed bit ranges within an instruction and are always of the same type. The way fields A-D are used depends on the instruction.
 
-| Field | Description                                                                                                 |
-| ----- | ----------------------------------------------------------------------------------------------------------- |
-| `x`   | If set, the value located at `A` will be treated as a second-level pointer                                  |
-| `a`   | Type mode indicator for the final value of `A`, if applicable                                               |
-| `y`   | If set, the value located at `B` will be treated as a second-level pointer                                  |
-| `b`   | Type mode indicator for the final value of `B`                                                              |
-| `A`   | Pointer to 1st argument; often used as a left-hand operand. Not used when `D` is present.                   |
-| `B`   | Pointer to 2nd argument; often used as a right-hand operand. Not used when `D` is present.                  |
-| `C`   | Pointer to 3rd argument; often used as result storage location                                              |
-| `D`   | 1st argument as a literal value stored within the instruction itself. Not used when `A` or `B` are present. |
+| Field | Description                                                                                |
+|-------|--------------------------------------------------------------------------------------------|
+| `-`   | The value should be `0` and any other value will result in undefined behavior              |
+| `x`   | If set, the value located at `A` will be treated as a second-level pointer                 |
+| `a`   | Type mode indicator for the final value of `A`, if applicable                              |
+| `y`   | If set, the value located at `B` will be treated as a second-level pointer                 |
+| `b`   | Type mode indicator for the final value of `B`                                             |
+| `A`   | Pointer to 1st argument; often used as a left-hand operand. Not used when `D` is present.  |
+| `B`   | Pointer to 2nd argument; often used as a right-hand operand. Not used when `D` is present. |
+| `C`   | Pointer to 3rd argument; often used as result storage location                             |
+| `D`   | 1st argument as a literal 32-bit value stored within the instruction itself.               |
+| `e`   | If set, field `E` is treated as a signed value. Otherwise, it is an unsigned value.        |
+| `f`   | If set, field `F` is treated as a signed value. Otherwise, it is an unsigned value.        |
+| `g`   | If set, field `G` is treated as a signed value. Otherwise, it is an unsigned value.        |
+| `h`   | If set, field `H` is treated as a signed value. Otherwise, it is an unsigned value.        |
+| `E`   | 1st argument as a literal 8-bit value stored within the instruction itself.                |
+| `F`   | 2nd argument as a literal 8-bit value stored within the instruction itself.                |
+| `G`   | 3rd argument as a literal 16-bit value stored within the instruction itself.               |
+| `H`   | 4rd argument as a literal 16-bit value stored within the instruction itself.               |
 
 ### Type Mode Indicators
 
 Most values require corresponding 3-bit type mode indicators in order to determine how many bits are in the value and how the bits should be interpreted during operations involving other values. The following type modes are possible:
 
 | Mode Bits | Type                    |
-| --------- | ----------------------- |
+|-----------|-------------------------|
 | `000`     | Unsigned 8-bit integer  |
 | `001`     | Unsigned 16-bit integer |
 | `010`     | Unsigned 32-bit integer |
@@ -80,7 +89,7 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 `SET` is used to store a literal value at a location in memory. The value is contained within the instruction.
 
 | Field | Description                         |
-| ----- | ----------------------------------- |
+|-------|-------------------------------------|
 | `C`   | Location where value will be stored |
 | `D`   | Value to be stored                  |
 
@@ -89,7 +98,7 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 `PCL` is used to perform a call to a procedure. Doing so will cause a new frame to be pushed onto the current thread's stack, will cause a range of bytes to be copied into the beginning of the new frame as arguments, and will cause execution to jump the procedure's first instruction. The procedure call can later be ended using `RET`.
 
 | Field | Description                                                                                                                                                    |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `A`   | Location of the first byte in the procedure's header                                                                                                           |
 | `B`   | Location of the first byte to be copied into the argument portion of the call's new stack frame. The total number of bytes copied is determined by the header. |
 | `C`   | Location where the procedure's return value should be stored, or `0` if the value is to be ignored.                                                            |
@@ -97,7 +106,7 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 All procedures begin with a header of a fixed size of 8 bytes:
 
 | Byte Range | Description                                                                                                                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0-1        | Unsigned 16-bit integer indicating number of total bytes within the procedure, including the header. When execution moves beyond this, the procedure is terminated and control is automatically returned to the previous frame. |
 | 2-3        | Unsigned 16-bit integer indicating the number of bytes that should be copied and allocated for arguments within the new stack frame.                                                                                            |
 | 4-5        | Unsigned 16-bit integer indicating additional space that should be allocated within the frame beyond the arguments.                                                                                                             |
@@ -113,7 +122,7 @@ The first instruction of the procedure begins immediately following the header. 
 `CJP` is used to perform a conditional jump of execution to another location. The condition is a number. If the value is non-zero, the condition is considered to be true. If it is `0`, the condition is considered to be false.
 
 | Field | Description                                  |
-| ----- | -------------------------------------------- |
+|-------|----------------------------------------------|
 | `A`   | Condition                                    |
 | `B`   | Address to jump to if the condition is true  |
 | `C`   | Address tp jump to if the condition is false |
@@ -123,7 +132,7 @@ The first instruction of the procedure begins immediately following the header. 
 `UJP` is used to cause execution to immediately jump to a specified address even without any condition.
 
 | Field | Description        |
-| ----- | ------------------ |
+|-------|--------------------|
 | `A`   | Address to jump to |
 
 ### Operator Instructions
@@ -131,7 +140,7 @@ The first instruction of the procedure begins immediately following the header. 
 All instructions representing mathematical, bitwise, or boolean operations use fields the same way:
 
 | Field | Description                                                 |
-| ----- | ----------------------------------------------------------- |
+|-------|-------------------------------------------------------------|
 | `A`   | Address to the location of the left operand                 |
 | `B`   | Address to the location of the right operand, if applicable |
 | `C`   | Address where the result of the operation will be stored    |
@@ -153,53 +162,42 @@ A virtually unlimited number of threads can be spawned simultaneously as long as
 > **TODO: How do we designate a region of memory for the thread's stack???**
 
 | Field | Description                                                                                                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
+|-------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `A`   | Address of the ID of the thread. For `SPN`, 0 indicates to use the next unused ID. For `KIL`, 0 indicates to kill the current thread. |
 | `B`   | Address of a new thread's first instruction.                                                                                          |
 
 ### SCL - System Call
 
-> **TODO: I want to completely redefine this system. System calls should be based on plugins, plugins should be registered in the ROM header, and SCL should refer to function sbased on header index number and function index number. The name of the plugin should not be used in the code.**
+`SCL` is used to communicate with the host system.
 
-`SCL` is used to communicate with the host system. Data will be stored within an arbitrary address range indicated by the instruction. This range will be both readable and writable to the host during the duration of the system call. The current VM thread will be blocked until the host returns, so if execution must continue while waiting for the host, a new thread must be spawned.
+System calls have full read-write access to the VM's memory while the call is being performed.
 
-Memory within a host-shared address range may be modified any number of times by the host system or other non-blocked threads while the thread that initiated the system call is being blocked. However, if the blocked thread is killed by another thread, this will end communication between the killed thread and the host, cancelling the system call and preventing the host from performing any further modifications to it. This can be done, for example, to create a timeout to prevent indefinitely waiting for a process outside of the vm that has hung.
+The current VM thread will be blocked until the host returns, so if execution must continue while waiting for the host, a new thread must be spawned and the system call should be performed within the new thread. However, if the blocked thread is killed by another thread, this will end communication between the killed thread and the host, cancelling the system call and preventing the host from performing any further modifications to it. This can be done, for example, to create a timeout to prevent indefinitely waiting for a process outside of the vm that has hung.
 
-| Field | Description                                      |
-| ----- | ------------------------------------------------ |
-| `a`   | Should be `001` (unsigned 16-bit integer)        |
-| `A`   | Pointer to number of bytes in shared data range. |
-| `C`   | Pointer to first byte of shared data range.      |
-
-#### System Call Return Values
-
-Following return of the system call, the first byte of the shared memory range should indicate a return code:
-
-| Return Code | Description                                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| 0           | Success                                                                                                 |
-| 254         | System call is in progress and has not yet completed                                                    |
-| 255         | Named system function was not recognized, or was not allowed to be performed by the current VM instance |
-
-Remaining bytes depend on the system call, and the Tendril program will need to be able to understand and interpret it.
-
-As a general convention, the shared memory range should start with a null-terminated ASCII string to indicate the name of the system function being called. Bytes beyond this depend on the system function.
-
-Aside from VM system functions, system calls are provided via plugins.
+| Field | Description                                                                                                                                                                                                                       |
+|-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `e`   | Should be 0 (negative IDs are not valid)                                                                                                                                                                                          |
+| `f`   | Should be 0 (negative IDs are not valid)                                                                                                                                                                                          |
+| `g`   | Determines whether `E` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
+| `h`   | Determines whether `H` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
+| `E`   | The ID number of the plugin as an 8-bit unsigned integer. The ID number will vary depending on the order of the plugins listed in the ROM header                                                                                  |
+| `F`   | The ID number of the function as an 8-bit unsigned integer. The ID number will vary depending on the functions provided by the plugin.                                                                                            |
+| `G`   | First argument to the system function. The meaning of the argument will vary depending on the function. For functions that operate on a specific region of VM memory, this indicates the number of bytes of memory in the region. |
+| `H`   | Second argument to the system function. The meaning of the argument will vary depending on the function. For functions that operate on a specific region of VM memory, this indicates the offset to the beginning of the region.  |
 
 #### VM System Functions
 
-Names that are 4 letters or fewer are reserved for basic communication with the VM itself:
+The first plugin (with ID 0) to be registered in any ROM should always be the core system plugin.
 
 | Function | Description                                                                                                                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `out`    | Output a line of informational text to the VM's console over stdout. Bytes following the name's null byte are a null-terminated string to be output.                                                                           |
+|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `out`    | Output a string of text to the VM's console over stdout. `E` indicates the number of bytes in the string, and                                                                                                                  |
 | `err`    | Output a line of error text to the VM's console over stderr. Bytes following the name's null byte are a null-terminated string to be output.                                                                                   |
 | `in`     | Read input from the VM's stdin. Return code is non-zero if input could not be read, or 0 if there is input to be read. The next 2 bytes indicate the number of input bytes available, and remaining bytes are the input bytes. |
 
-## Video Output
+### ??? - Undefined Instructions
 
-The Tendril VM displays a window on the host containing video output by the program. A memory range called "VRAM" is dedicated to providing raster data to be displayed in this window. Any writes to VRAM will be displayed in the window on the next refresh.
+These instructions do not have a defined behavior. Do not use them.
 
 ## Plugins
 
