@@ -150,12 +150,16 @@ When multiple threads are running, the virtual machine will execute the next ins
 
 A virtually unlimited number of threads can be spawned simultaneously as long as memory is available for their stacks. Additionally, any thread can spawn or kill another thread, except for the initial thread, which can only be killed by itself. The virtual machine will set an execution cap to prevent runaway spawning of new threads from stalling the virtual machine itself. This is done by slowing execution of individual threads as consumption of computing power increases.
 
+> **TODO: How do we designate a region of memory for the thread's stack???**
+
 | Field | Description                                                                                                                           |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `A`   | Address of the ID of the thread. For `SPN`, 0 indicates to use the next unused ID. For `KIL`, 0 indicates to kill the current thread. |
 | `B`   | Address of a new thread's first instruction.                                                                                          |
 
 ### SCL - System Call
+
+> **TODO: I want to completely redefine this system. System calls should be based on plugins, plugins should be registered in the ROM header, and SCL should refer to function sbased on header index number and function index number. The name of the plugin should not be used in the code.**
 
 `SCL` is used to communicate with the host system. Data will be stored within an arbitrary address range indicated by the instruction. This range will be both readable and writable to the host during the duration of the system call. The current VM thread will be blocked until the host returns, so if execution must continue while waiting for the host, a new thread must be spawned.
 
