@@ -137,6 +137,8 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 
 If flag `i` is 0, execution in the VM continues as soon as the call has been initiated; the VM will not wait for the system call to finish, nor is there any mechanism for detecting that a call has finished. To this end, the program must either not depend on the result of the system call and be capable of continuing while the call runs in parallel until it ends on its own, or else the program must devise a way to detect the call's completion by reading signals out of VM memory that may be left by the call during its execution, or else it must be able to signal to the call that it should end.
 
+if `i` is 1, the VM will stop executing instructions until the system call ends.
+
 | Field | Description                                                                                                                                                                                                                       |
 |-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `e`   | Should be 0 (negative IDs are not valid)                                                                                                                                                                                          |
@@ -161,7 +163,7 @@ The first plugin (with ID 0) to be registered in any ROM should always be the co
 | `3`         | Read input from the VM's stdin. `G` is the number of bytes to read, and `H` is the location in memory where they should be stored.                              |
 | `4`         | Get the number of plugins in use by the ROM. (This is the number of plugins listed in the header.) The number will be stored as an unsigned 8-bit integer at the location in memory indicated by `G`. |
 | `5`         | Get the length of the name of one of the plugins. The index number is indicated by `H`, and the location wherein the length should be stored is indicated by `G`. The name length number will be an 8-bit unsigned integer. |
-| `5`         | Copy the name of the plugin from the header with a given index number. The index number is indicated by `H`, and the beginning of the offset 
+| `5`         | Copy the name of the plugin from the header with a given index number. The index number is indicated by `H`, and the beginning of the offset is indicated by `G`.  |
 
 ### ??? - Undefined Instructions
 
