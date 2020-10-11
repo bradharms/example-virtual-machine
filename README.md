@@ -40,7 +40,7 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `1B` | `LTE` | `<=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `1C` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `1D` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `1E` | `SCL` | System call           | `efgh:---- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
+| `1E` | `SCL` | System call           | `efgh:i--- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
 | `1F` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `20` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | ...  | ...   | ...                   | ...                                                                     |
@@ -64,6 +64,10 @@ Fields are assigned to fixed bit ranges within an instruction and are always of 
 | `f`   | If set, field `F` is treated as a signed value. Otherwise, it is an unsigned value.        |
 | `g`   | If set, field `G` is treated as a signed value. Otherwise, it is an unsigned value.        |
 | `h`   | If set, field `H` is treated as a signed value. Otherwise, it is an unsigned value.        |
+| `i`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
+| `j`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
+| `k`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
+| `l`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
 | `E`   | 1st argument as a literal 8-bit value stored within the instruction itself.                |
 | `F`   | 2nd argument as a literal 8-bit value stored within the instruction itself.                |
 | `G`   | 3rd argument as a literal 16-bit value stored within the instruction itself.               |
@@ -129,7 +133,9 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 
 ### SCL - System Call
 
-`SCL` is used to communicate with the host system via "system calls". System calls have full read-write access to the VM's memory while the call is being performed, though how it is used will depend on the function that was called. Execution in the VM continues as soon as the call has been initiated; the VM will not wait for the system call to finish, nor is there any mechanism for detecting that a call has finished. To this end, the program must either not depend on the result of the system call and be capable of continuing while the call runs in parallel until it ends on its own, or else the program must devise a way to detect the call's completion by reading signals out of VM memory that may be left by the call during its execution, or else it must be able to signal to the call that it should end.
+`SCL` is used to communicate with the host system via "system calls". System calls have full read-write access to the VM's memory while the call is being performed, though how it is used will depend on the function that was called.
+
+If flag `i` is 0, execution in the VM continues as soon as the call has been initiated; the VM will not wait for the system call to finish, nor is there any mechanism for detecting that a call has finished. To this end, the program must either not depend on the result of the system call and be capable of continuing while the call runs in parallel until it ends on its own, or else the program must devise a way to detect the call's completion by reading signals out of VM memory that may be left by the call during its execution, or else it must be able to signal to the call that it should end.
 
 | Field | Description                                                                                                                                                                                                                       |
 |-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -137,6 +143,7 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 | `f`   | Should be 0 (negative IDs are not valid)                                                                                                                                                                                          |
 | `g`   | Determines whether `E` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
 | `h`   | Determines whether `H` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
+| `i`   | Indicates whether or not VM execution should block and wait for the system call to finish.                                                                                                                                        |
 | `E`   | The ID number of the plugin as an 8-bit unsigned integer. The ID number will vary depending on the order of the plugins listed in the ROM header                                                                                  |
 | `F`   | The ID number of the function as an 8-bit unsigned integer. The ID number will vary depending on the functions provided by the plugin.                                                                                            |
 | `G`   | First argument to the system function. The meaning of the argument will vary depending on the function. For functions that operate on a specific region of VM memory, this indicates the number of bytes of memory in the region. |
@@ -144,7 +151,7 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 
 #### VM System Functions
 
-The first plugin (with ID 0) to be registered in any ROM should always be the core system plugin.
+The first plugin (with ID 0) to be registered in any ROM should always be the core system plugin (`tendril.system`).
 
 | Function ID | Description                                                                                                                                                     |
 |-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -152,6 +159,9 @@ The first plugin (with ID 0) to be registered in any ROM should always be the co
 | `1`         | Output a string of text to the VM's console over stdout. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory.     |
 | `2`         | Output a line of error text to the VM's console over stderr. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory. |
 | `3`         | Read input from the VM's stdin. `G` is the number of bytes to read, and `H` is the location in memory where they should be stored.                              |
+| `4`         | Get the number of plugins in use by the ROM. (This is the number of plugins listed in the header.) The number will be stored as an unsigned 8-bit integer at the location in memory indicated by `G`. |
+| `5`         | Get the length of the name of one of the plugins. The index number is indicated by `H`, and the location wherein the length should be stored is indicated by `G`. The name length number will be an 8-bit unsigned integer. |
+| `5`         | Copy the name of the plugin from the header with a given index number. The index number is indicated by `H`, and the beginning of the offset 
 
 ### ??? - Undefined Instructions
 
@@ -160,3 +170,7 @@ These instructions do not have a defined behavior. Do not use them.
 ## Plugins
 
 Plugins are non-Tendril code that executes on the host and which are capable of providing functions that can be called using `SCL` from inside Tendril programs. Plugins must be registered with the VM from the outside before they can be used, and the name of the plugin must be present in the ROM header.
+
+## ROM Header
+
+The ROM header is a version info string followed by a newline, followed by a list of newline-separated names of plugins that the VM must load and run in conjunction with the ROM. Three consecutive newlines indicates the end of the header.
