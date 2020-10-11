@@ -1,6 +1,6 @@
 # Tendril Specification
 
-Tendril is a virtual machine that executes instructions encoded as binary data and which operate on a fixed memory range. It does not use registers, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
+Tendril is a virtual machine that executes instructions encoded as binary data and which operate on a fixed memory range. It does not use any registers other than the code pointer, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
 
 ## Instruction Set
 
@@ -13,8 +13,8 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `00` | `NOP` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `01` | `SET` | Store a value         | `----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
 | `02` | `MOV` | Copy a range of bytes | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `03` | `PCL` | Procedure call        | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `04` | `RET` | Return from procedure | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `03` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `04` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `05` | `CJP` | Conditional jump      | `x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `06` | `UJP` | Unconditional jump    | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
 | `07` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
@@ -38,8 +38,8 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `19` | `LSR` | `<`                   | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `1A` | `GTE` | `>=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `1B` | `LTE` | `<=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
-| `1C` | `SPN` | Spawn a new thread    | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB ----:---- ----:----` |
-| `1D` | `KIL` | Kill a thread         | `xaaa:y--- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
+| `1C` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
+| `1D` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `1E` | `SCL` | System call           | `efgh:---- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
 | `1F` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `20` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
@@ -93,30 +93,6 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 | `C`   | Location where value will be stored |
 | `D`   | Value to be stored                  |
 
-### PCL, RET - Procedure Call
-
-`PCL` is used to perform a call to a procedure. Doing so will cause a new frame to be pushed onto the current thread's stack, will cause a range of bytes to be copied into the beginning of the new frame as arguments, and will cause execution to jump the procedure's first instruction. The procedure call can later be ended using `RET`.
-
-| Field | Description                                                                                                                                                    |
-|-------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `A`   | Location of the first byte in the procedure's header                                                                                                           |
-| `B`   | Location of the first byte to be copied into the argument portion of the call's new stack frame. The total number of bytes copied is determined by the header. |
-| `C`   | Location where the procedure's return value should be stored, or `0` if the value is to be ignored.                                                            |
-
-All procedures begin with a header of a fixed size of 8 bytes:
-
-| Byte Range | Description                                                                                                                                                                                                                     |
-|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0-1        | Unsigned 16-bit integer indicating number of total bytes within the procedure, including the header. When execution moves beyond this, the procedure is terminated and control is automatically returned to the previous frame. |
-| 2-3        | Unsigned 16-bit integer indicating the number of bytes that should be copied and allocated for arguments within the new stack frame.                                                                                            |
-| 4-5        | Unsigned 16-bit integer indicating additional space that should be allocated within the frame beyond the arguments.                                                                                                             |
-| 6          | Bit 0 is unused. Bits 1-3 indicate the return value type mode indicator. Remaining bits are also unused.                                                                                                                        |
-| 7          | Unused.                                                                                                                                                                                                                         |
-
-The first instruction of the procedure begins immediately following the header. If the procedure does not end explicitly return using a `RET` instruction, the return value will be `0`.
-
-`RET` is used to perform an explicit return from a procedure call prior to the end of the procedure's designated range as indicated by the header. In this case, field `A` can be used to specify the location of a return value, whose type is indicated in the procedure header.
-
 ### CJP - Conditional Jump
 
 `CJP` is used to perform a conditional jump of execution to another location. The condition is a number. If the value is non-zero, the condition is considered to be true. If it is `0`, the condition is considered to be false.
@@ -151,28 +127,9 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 > 2. When the data type mode (bit fields `c` and `f`) of an operand indicates the value is a float, (corresponding to a mode of `11`), the corresponding sign field (`b` and `e`, respectively), have no defined meaning, but for consistency should be set to `1`, since floats are defined to always be signed.
 > 3. Single-operand operations do not use these bits and should all be set to 0, and their singular operand location and corresponding meta-data bits should be stored in the left operand's bits.
 
-### SPN, KIL - Spawning and killing threads
-
-New threads of execution can be spawned by calling `SPN`. These threads operate on the same memory as the original thread and can do anything the original thread can do, but they have their own stack and will continue even when other threads are blocked. Threads will continue to execute until they are killed using the `KIL` instruction.
-
-When multiple threads are running, the virtual machine will execute the next instruction for each thread sequentially thread-by-thread in order of thread ID. This ensures that no two threads ever access the same resource at the same time, but allows instructions to execute near enough together that they appear to be simultaneous for most purposes.
-
-A virtually unlimited number of threads can be spawned simultaneously as long as memory is available for their stacks. Additionally, any thread can spawn or kill another thread, except for the initial thread, which can only be killed by itself. The virtual machine will set an execution cap to prevent runaway spawning of new threads from stalling the virtual machine itself. This is done by slowing execution of individual threads as consumption of computing power increases.
-
-> **TODO: How do we designate a region of memory for the thread's stack???**
-
-| Field | Description                                                                                                                           |
-|-------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `A`   | Address of the ID of the thread. For `SPN`, 0 indicates to use the next unused ID. For `KIL`, 0 indicates to kill the current thread. |
-| `B`   | Address of a new thread's first instruction.                                                                                          |
-
 ### SCL - System Call
 
-`SCL` is used to communicate with the host system.
-
-System calls have full read-write access to the VM's memory while the call is being performed.
-
-The current VM thread will be blocked until the host returns, so if execution must continue while waiting for the host, a new thread must be spawned and the system call should be performed within the new thread. However, if the blocked thread is killed by another thread, this will end communication between the killed thread and the host, cancelling the system call and preventing the host from performing any further modifications to it. This can be done, for example, to create a timeout to prevent indefinitely waiting for a process outside of the vm that has hung.
+`SCL` is used to communicate with the host system via "system calls". System calls have full read-write access to the VM's memory while the call is being performed, though how it is used will depend on the function that was called. Execution in the VM continues as soon as the call has been initiated; the VM will not wait for the system call to finish, nor is there any mechanism for detecting that a call has finished. To this end, the program must either not depend on the result of the system call and be capable of continuing while the call runs in parallel until it ends on its own, or else the program must devise a way to detect the call's completion by reading signals out of VM memory that may be left by the call during its execution, or else it must be able to signal to the call that it should end.
 
 | Field | Description                                                                                                                                                                                                                       |
 |-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -189,11 +146,12 @@ The current VM thread will be blocked until the host returns, so if execution mu
 
 The first plugin (with ID 0) to be registered in any ROM should always be the core system plugin.
 
-| Function | Description                                                                                                                                                                                                                    |
-|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `out`    | Output a string of text to the VM's console over stdout. `E` indicates the number of bytes in the string, and                                                                                                                  |
-| `err`    | Output a line of error text to the VM's console over stderr. Bytes following the name's null byte are a null-terminated string to be output.                                                                                   |
-| `in`     | Read input from the VM's stdin. Return code is non-zero if input could not be read, or 0 if there is input to be read. The next 2 bytes indicate the number of input bytes available, and remaining bytes are the input bytes. |
+| Function ID | Description                                                                                                                                                     |
+|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `0`         | End the application.                                                                                                                                             |
+| `1`         | Output a string of text to the VM's console over stdout. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory.     |
+| `2`         | Output a line of error text to the VM's console over stderr. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory. |
+| `3`         | Read input from the VM's stdin. `G` is the number of bytes to read, and `H` is the location in memory where they should be stored.                              |
 
 ### ??? - Undefined Instructions
 
@@ -201,4 +159,4 @@ These instructions do not have a defined behavior. Do not use them.
 
 ## Plugins
 
-Plugins are non-Tendril code that executes on the host and which are capable of providing system functions that can be called using `SCL` from inside Tendril programs. Plugins must be registered with the VM from the outside before they can be used. Additionally, each Tendril program must register the names of system calls it wants to be able to use in its header, and users must explicitly give permission for each one before they can be called.
+Plugins are non-Tendril code that executes on the host and which are capable of providing functions that can be called using `SCL` from inside Tendril programs. Plugins must be registered with the VM from the outside before they can be used, and the name of the plugin must be present in the ROM header.
