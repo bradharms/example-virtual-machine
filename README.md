@@ -12,7 +12,7 @@ Currently instructions end at hex code `1E` (`SCL`).
 | ---- | ----- | --------------------- | ----------------------------------------------------------------------- |
 | `00` | `NOP` | No-op                 | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `01` | `SET` | Store a value         | `----:---- DDDD:DDDD DDDD:DDDD DDDD:DDDD DDDD:DDDD CCCC:CCCC CCCC:CCCC` |
-| `03` | `MOV` | Copy a range of bytes | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
+| `02` | `MOV` | Copy a range of bytes | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `03` | `PCL` | Procedure call        | `----:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `04` | `RET` | Return from procedure | `xaaa:---- AAAA:AAAA AAAA:AAAA ----:---- ----:---- ----:---- ----:----` |
 | `05` | `CJP` | Conditional jump      | `x---:---- AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
@@ -142,13 +142,13 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 > 2. When the data type mode (bit fields `c` and `f`) of an operand indicates the value is a float, (corresponding to a mode of `11`), the corresponding sign field (`b` and `e`, respectively), have no defined meaning, but for consistency should be set to `1`, since floats are defined to always be signed.
 > 3. Single-operand operations do not use these bits and should all be set to 0, and their singular operand location and corresponding meta-data bits should be stored in the left operand's bits.
 
-### SPN, EXT - Spawn a new Thread
+### SPN, KIL - Spawning and killing threads
 
 New threads of execution can be spawned by calling `SPN`. These threads operate on the same memory as the original thread and can do anything the original thread can do, but they have their own stack and will continue even when other threads are blocked. Threads will continue to execute until they are killed using the `KIL` instruction.
 
 When multiple threads are running, the virtual machine will execute the next instruction for each thread sequentially thread-by-thread in order of thread ID. This ensures that no two threads ever access the same resource at the same time, but allows instructions to execute near enough together that they appear to be simultaneous for most purposes.
 
-A virtually unlimited number of threads can be spawned simultaneously. Additionally, any thread can spawn or kill another thread, except for the initial thread, which can only be killed by itself. The virtual machine will set an execution cap to prevent runaway spawning of new threads from stalling the virtual machine itself. This is done by slowing execution of individual threads as consumption of computing power increases.
+A virtually unlimited number of threads can be spawned simultaneously as long as memory is available for their stacks. Additionally, any thread can spawn or kill another thread, except for the initial thread, which can only be killed by itself. The virtual machine will set an execution cap to prevent runaway spawning of new threads from stalling the virtual machine itself. This is done by slowing execution of individual threads as consumption of computing power increases.
 
 | Field | Description                                                                                                                           |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
