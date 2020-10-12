@@ -1,0 +1,14 @@
+#/usr/bin/env tendril-vm
+vm: TENDRIL 1.0
+name: Example
+version: '1.0.0'
+author: "Brad Harms" <brad.k.harms@gmail.com>
+url: http://www.example.com
+required:
+  - tendril.core.1.0
+  - tendril.system.1.0
+optional: []
+plugins:
+  tendril.core.1.0: tendril.core.1.0.0
+  tendril.system.1.0: tendril.system.1.0.0
+mem: ''

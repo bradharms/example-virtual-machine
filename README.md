@@ -40,7 +40,7 @@ Currently instructions end at hex code `1E` (`SCL`).
 | `1B` | `LTE` | `<=`                  | `xaaa:ybbb AAAA:AAAA AAAA:AAAA BBBB:BBBB BBBB:BBBB CCCC:CCCC CCCC:CCCC` |
 | `1C` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `1D` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
-| `1E` | `SCL` | System call           | `efgh:i--- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
+| `1E` | `PCL` | Plugin call           | `efgh:---- EEEE:EEEE FFFF:FFFF GGGG:GGGG GGGG:GGGG HHHH:HHHH HHHH:HHHH` |
 | `1F` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | `20` | `---` | _undefined_           | `----:---- ----:---- ----:---- ----:---- ----:---- ----:---- ----:----` |
 | ...  | ...   | ...                   | ...                                                                     |
@@ -64,10 +64,6 @@ Fields are assigned to fixed bit ranges within an instruction and are always of 
 | `f`   | If set, field `F` is treated as a signed value. Otherwise, it is an unsigned value.        |
 | `g`   | If set, field `G` is treated as a signed value. Otherwise, it is an unsigned value.        |
 | `h`   | If set, field `H` is treated as a signed value. Otherwise, it is an unsigned value.        |
-| `i`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
-| `j`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
-| `k`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
-| `l`   | Variable-use flag that enables or disables an OP-specific sub-feature.                     |
 | `E`   | 1st argument as a literal 8-bit value stored within the instruction itself.                |
 | `F`   | 2nd argument as a literal 8-bit value stored within the instruction itself.                |
 | `G`   | 3rd argument as a literal 16-bit value stored within the instruction itself.               |
@@ -115,7 +111,7 @@ Most values require corresponding 3-bit type mode indicators in order to determi
 |-------|--------------------|
 | `A`   | Address to jump to |
 
-### Operator Instructions
+### Operator Instructions (ADD, SUB, MUL, etc.)
 
 All instructions representing mathematical, bitwise, or boolean operations use fields the same way:
 
@@ -131,13 +127,9 @@ All instructions representing mathematical, bitwise, or boolean operations use f
 > 2. When the data type mode (bit fields `c` and `f`) of an operand indicates the value is a float, (corresponding to a mode of `11`), the corresponding sign field (`b` and `e`, respectively), have no defined meaning, but for consistency should be set to `1`, since floats are defined to always be signed.
 > 3. Single-operand operations do not use these bits and should all be set to 0, and their singular operand location and corresponding meta-data bits should be stored in the left operand's bits.
 
-### SCL - System Call
+### PCL - Plugin Call
 
-`SCL` is used to communicate with the host system via "system calls". System calls have full read-write access to the VM's memory while the call is being performed, though how it is used will depend on the function that was called.
-
-If flag `i` is 0, execution in the VM continues as soon as the call has been initiated; the VM will not wait for the system call to finish, nor is there any mechanism for detecting that a call has finished. To this end, the program must either not depend on the result of the system call and be capable of continuing while the call runs in parallel until it ends on its own, or else the program must devise a way to detect the call's completion by reading signals out of VM memory that may be left by the call during its execution, or else it must be able to signal to the call that it should end.
-
-if `i` is 1, the VM will stop executing instructions until the system call ends.
+`PCL` is used to call plugin functions. Unless the plugin function triggers a pause in execution, the VM continues as soon as the call has been initiated and does not wait for it to finish. If the plugin did pause execution, however, it is also responsible for resuming execution afterwards.
 
 | Field | Description                                                                                                                                                                                                                       |
 |-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -145,25 +137,10 @@ if `i` is 1, the VM will stop executing instructions until the system call ends.
 | `f`   | Should be 0 (negative IDs are not valid)                                                                                                                                                                                          |
 | `g`   | Determines whether `E` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
 | `h`   | Determines whether `H` will be presented to the host as unsigned (0) or signed (1)                                                                                                                                                |
-| `i`   | Indicates whether or not VM execution should block and wait for the system call to finish.                                                                                                                                        |
 | `E`   | The ID number of the plugin as an 8-bit unsigned integer. The ID number will vary depending on the order of the plugins listed in the ROM header                                                                                  |
 | `F`   | The ID number of the function as an 8-bit unsigned integer. The ID number will vary depending on the functions provided by the plugin.                                                                                            |
 | `G`   | First argument to the system function. The meaning of the argument will vary depending on the function. For functions that operate on a specific region of VM memory, this indicates the number of bytes of memory in the region. |
 | `H`   | Second argument to the system function. The meaning of the argument will vary depending on the function. For functions that operate on a specific region of VM memory, this indicates the offset to the beginning of the region.  |
-
-#### VM System Functions
-
-The first plugin (with ID 0) to be registered in any ROM should always be the core system plugin (`tendril.system`).
-
-| Function ID | Description                                                                                                                                                     |
-|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `0`         | End the application.                                                                                                                                             |
-| `1`         | Output a string of text to the VM's console over stdout. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory.     |
-| `2`         | Output a line of error text to the VM's console over stderr. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory. |
-| `3`         | Read input from the VM's stdin. `G` is the number of bytes to read, and `H` is the location in memory where they should be stored.                              |
-| `4`         | Get the number of plugins in use by the ROM. (This is the number of plugins listed in the header.) The number will be stored as an unsigned 8-bit integer at the location in memory indicated by `G`. |
-| `5`         | Get the length of the name of one of the plugins. The index number is indicated by `H`, and the location wherein the length should be stored is indicated by `G`. The name length number will be an 8-bit unsigned integer. |
-| `5`         | Copy the name of the plugin from the header with a given index number. The index number is indicated by `H`, and the beginning of the offset is indicated by `G`.  |
 
 ### ??? - Undefined Instructions
 
@@ -171,8 +148,111 @@ These instructions do not have a defined behavior. Do not use them.
 
 ## Plugins
 
-Plugins are non-Tendril code that executes on the host and which are capable of providing functions that can be called using `SCL` from inside Tendril programs. Plugins must be registered with the VM from the outside before they can be used, and the name of the plugin must be present in the ROM header.
+Plugins are non-Tendril code modules that execute on the host and which are capable of providing functions that can be called using system calls from inside Tendril programs. Plugins must be installed into the VM on the host before they can be used within a ROM, and the name of the plugin must be present in the ROM metadata.
 
-## ROM Header
+Some plugins are provided with a default installation of the VM, and are always available. Others must be installed independently.
 
-The ROM header is a version info string followed by a newline, followed by a list of newline-separated names of plugins that the VM must load and run in conjunction with the ROM. Three consecutive newlines indicates the end of the header.
+Every plugin fulfils one or more interfaces. Theoretically, any plugin can be substituted with another plugin that implements the same interface, although it is not guaranteed that the ROM will still be fully functional if the ROM depended on specific details of the original plugin's implementation. The VM provides utilities to substitute plugins globally or by a specific ROM name and version range.
+
+ROMs will indicate both the interface of the plugins they require, as well as the name of the specific plugin they recommend to fulfil that interface. The VM will not run unless all required interfaces for a ROM are fulfilled by installed plugins.
+
+All ROMs should require some variant of the `tendril.core.X.Y.Z` and `tendril.system.X.Y.Z` interfaces, and these must be listed as explicit requirements, and should be the first two requirements in the list of required interfaces.
+
+Plugins listed in the ROM header are each initialized in the order specified by the ROM, with optional plugins always being initialized after required plugins.
+
+Initialization is performed prior to execution of any Tendril instructions. However, ROMs may perform additional initialization steps by using system calls for plugins that require it. (The means of doing this will depend on the plugin interface.)
+
+Plugins have total access to the VM's memory at all times. Non-standard plugins should not be installed unless they are trusted.
+
+### Required Plugins
+
+These plugins (or plugins with the same interfaces) MUST be required by all ROMs:
+
+#### `tendril.core`
+The first plugin (with ID 0) to be registered in any ROM should be the core plugin (`tendril.core`) and functions as the VM's CPU, which means it is the one solely responsible for executing machine code.
+
+
+##### Functions
+| Function ID | Description                                                                                                                                                                                                                 |
+|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `0`         | Begin or resume the execution of VM instructions. This is called automatically by the VM itself as part of the program initialization process.                                                                              |
+| `1`         | Pause execution of the VM. This can be called by the  instructions.                                                                                                                                                                                     |
+| `2`         | End execution of instructions, terminating the program.                                                                                                                                                                     |
+| `3`         | Get the number of plugins in use by the VM. (This is the number of plugins listed in the header.) The number will be stored as an unsigned 8-bit integer at the location in memory indicated by `G`.                       |
+| `4`         | Get the length of the name of one of the plugins. The index number is indicated by `H`, and the location wherein the length should be stored is indicated by `G`. The name length number will be an 8-bit unsigned integer. |
+| `5`         | Copy the name of the plugin from the header with a given index number. The index number is indicated by `H`, and the beginning of the offset is indicated by `G`.                                                           |
+
+#### `tendril.system`
+The second plugin (with ID 1) should be the system plugin (`tendril.system`), which is responsible for communication between the current Tendril application and the VM's host OS.
+
+##### Functions
+| Function ID | Description                                                                                                                                                     |
+|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `0`         | Output a string of text to the VM's console over stdout. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory.     |
+| `1`         | Output a line of error text to the VM's console over stderr. `G` indicates the number of bytes in the string, and `H` is the beginning of the string in memory. |
+| `2`         | Read input from the VM's stdin. `G` is the number of bytes to read, and `H` is the location in memory where they should be stored.                              |
+
+### Other Common Plugins
+
+These plugins and their interfaces will be mentioned briefly here as they are commonly used, but they will be covered in greater detail in other areas since their behavior is extensive.
+
+#### `tendril.video`
+
+Provides the main video output for Tendril applications.
+
+### `tendril.audio`
+
+Provides the main audio output for Tendril applications.
+
+### `tendril.input`
+
+Provides user input for Tendril applications.
+
+## ROM files
+
+ROMs are Yaml files that contain metadata and a snapshot of the initial VM memory state. The VM can be given the path of the ROM file as sole argument to execute it.
+
+### Identification
+
+The file extension `.tendril` is optional, but recommended for cross-platform execution. However, a ROM file should always begin with a Unix shebang as follows to indicate the file is executable:
+
+`#!/usr/bin/env tendril-vm`
+
+### Structure
+
+Following the shebang, the structure of the ROM is a single object with the following keys and values
+
+| Key  | Description                                            | Example         |
+|------|--------------------------------------------------------|-----------------|
+| `vm` | Version string for the VM that this ROM is targeted at | "`TENDRIL 1.0`" |
+| `name` | Name of the ROM | `"Hero's Adventure"`
+| `version` | Version of the ROM | `1.0.0` |
+| `author` | Name of the author of the ROM | "`Fun House Inc.`" |
+| `url` | A URL to additional information about the ROM | "`http://www.example.com`" |
+| `required` | Array of interfaces that this ROM requires to be fulfilled with plugins | (array) | 
+| `optional` | Array of interfaces that the ROM can also use if available, but are not required | (array) |
+| `plugins` | An object that maps the names of required and optional interfaces to the recommended plugins to implement them | (object) |
+| `mem` | Snapshot of the initial memory state encoded in gzip-compress base64 | (base-64-encoded data as a string) |
+
+### ROM VM Memory Snapshot
+
+The `mem` key of the ROM contains a complete snapshot of the VM's memory as it appears at the beginning of the ROM's execution encoded as compressed, base-64-encoded data. The exact layout of this data will vary wildly and has very little reliable structure to it. However, as the code pointer exists at memory offset 0, the first two bytes of the data effectively indicate the program entry point.
+
+## Program Execution
+
+Execution occurs in the following steps:
+
+1. The host system passes the path of the ROM file as an argument to the `tendril-vm` executable.
+2. The version will be checked against known versions, and if the current `tendril-vm` does not know how to execute this version an error is returned.
+3. The required interfaces are checked. If all required interfaces are implemented by installed plugins, they are loaded (preferring host-specified substitutions first, then those recommended by the ROM). If not all interfaces can be fulfilled, an error is returned.  
+4. The optional interfaces are checked. Any interfaces that can be implemented by available plugins are then then loaded, preferring host-specified substitutions over those recommended by the ROM.
+5. The plugins of all required interfaces are initialized in order of appearance in the ROM meta data.
+6. The plugins of all optional interfaces are initialized in order of appearance in thr ROM meta data.
+7. Data in the `mem` section of the ROM is decoded, decompressed, and loaded into the VM's virtual memory.
+8. The main VM instruction execution loop begins.
+
+At this point, the instructions in the ROM take over execution.
+
+## Object Files and Source Files
+
+The "object code" for a Tendril program is actually just a series of large JSON blobs. These blobs can be hand-written, but its much more preferable to use the included `tendril-asm` library in conjunction with JavaScript or TypeScript, which include utilities for building Tendril programs more intuitively, and effectively allows JavaScript and TypeScript to function as macro languages. Using `tendril-asm`, you get the ability to treat JavaScript and TypeScript files as Tendril source files.

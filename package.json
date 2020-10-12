@@ -1,7 +1,7 @@
 {
     "name": "tendril",
     "scripts": {
-        "start": "bin/tendril run default"
+        "start": "bin/tendril-vm ./programs/example.tendril"
     },
     "devDependencies": {
         "@types/node": "^12.12.14",
