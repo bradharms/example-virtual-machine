@@ -1,6 +1,8 @@
 # Tendril Specification
 
-Tendril is a virtual machine that executes instructions encoded as binary data and which operate on a fixed memory range. It does not use any registers other than the code pointer, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
+This is an example specification for a virtual machine and instruction set collectively called "Tendril".
+
+The virtual machine executes instructions encoded as binary data and operates on a fixed memory range. It does not use any registers other than the code pointer, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
 
 ## Instruction Set
 
