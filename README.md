@@ -1,8 +1,10 @@
-# Tendril Specification
+# Example Virtual Machine
 
-This is an example specification for a virtual machine and instruction set collectively called "Tendril".
+This is an example specification for a CPU instruction set and virtual machine collectively called "Tendril".
 
 The virtual machine executes instructions encoded as binary data and operates on a fixed memory range. It does not use any registers other than the code pointer, and all instructions are capable of storing to and/or retrieving from any point in addressable memory. It is designed to be familiar to programmers of higher-level languages.
+
+This project is meant to serve as a coding excercise and academic example and is not intended for serious production use. For an example of a robust, real-world open instruction set, check out [RISC-V](https://en.wikipedia.org/wiki/RISC-V).
 
 ## Instruction Set
 
